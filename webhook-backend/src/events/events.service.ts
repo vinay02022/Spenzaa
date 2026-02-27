@@ -1,15 +1,22 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DeliveryService } from '../delivery/delivery.service.js';
 import { ReceiveEventDto } from './dto/receive-event.dto.js';
 
 @Injectable()
 export class EventsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(EventsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private deliveryService: DeliveryService,
+  ) {}
 
   async receive(subscriptionId: string, dto: ReceiveEventDto, headers: Record<string, string>) {
     const subscription = await this.prisma.webhookSubscription.findUnique({
@@ -33,6 +40,11 @@ export class EventsService {
         headers: headers as unknown as Prisma.InputJsonValue,
         status: 'RECEIVED',
       },
+    });
+
+    // Fire-and-forget: attempt immediate delivery
+    this.deliveryService.deliverEvent(event.id).catch((err) => {
+      this.logger.error(`Failed to trigger delivery for event ${event.id}`, err);
     });
 
     return event;

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Events page displays all incoming webhook events for the authenticated user, with filtering, detail modals, and delivery attempt visibility.
+The Events page displays all incoming webhook events for the authenticated user, with filtering, detail modals, and delivery attempt history.
 
 ## Events List (`/events`)
 
@@ -26,19 +26,27 @@ The Events page displays all incoming webhook events for the authenticated user,
 
 ## Event Detail Modal
 
-Clicking "Details" opens a full-screen overlay modal showing:
-- Event ID, type, source, status, attempt count
+Clicking "Details" fetches `GET /events/:id` (which includes delivery attempts) and opens a modal showing:
+
+- Event ID, type, source, status (color-coded badge), attempt count
 - Last error message (if any, shown in red)
 - Subscription source URL and callback URL
 - Received timestamp
 - Full JSON payload in a formatted `<pre>` block
 
-## Delivery Attempts (Phase 4 addition)
+### Delivery Attempts Table (Phase 4)
 
-The detail modal will show delivery attempt history after Phase 4:
-- Attempt number, status (SUCCESS/FAILED), HTTP status code
-- Error message and response snippet
-- Timestamp per attempt
+Below the payload, a table shows all delivery attempts:
+
+| Column | Content |
+|--------|---------|
+| #      | Attempt number |
+| Status | SUCCESS (green) / FAILED (red) badge |
+| HTTP   | HTTP status code or "—" |
+| Error  | Error message (truncated, red text) or "—" |
+| Time   | Formatted timestamp |
+
+Shows "No delivery attempts yet." if empty.
 
 ## File
 
@@ -49,5 +57,6 @@ The detail modal will show delivery attempt history after Phase 4:
 1. Login at `/login`
 2. Navigate to `/events`
 3. Events from the user's subscriptions appear in the table
-4. Click "Details" on any event to see full payload
-5. Use the filter input to narrow by subscription ID
+4. Click "Details" on any event to see full payload + delivery attempts
+5. Events with failed deliveries show attempt history with error messages
+6. Use the filter input to narrow by subscription ID
