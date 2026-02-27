@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions WebhookSubscription[]
+}
+
+model WebhookSubscription {
+  id          String   @id @default(uuid())
+  sourceUrl   String
+  callbackUrl String
+  secret      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  events WebhookEvent[]
+
+  @@index([userId])
+}
+
+model WebhookEvent {
+  id        String   @id @default(uuid())
+  payload   Json
+  headers   Json?
+  status    EventStatus @default(RECEIVED)
+  attempts  Int         @default(0)
+  lastError String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  subscriptionId String
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+enum EventStatus {
+  RECEIVED
+  PROCESSING
+  DELIVERED
+  FAILED
+}
