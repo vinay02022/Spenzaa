@@ -40,4 +40,12 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get webhookEvent() {
     return this.client.webhookEvent;
   }
+
+  get deliveryAttempt() {
+    return this.client.deliveryAttempt;
+  }
+
+  get $transaction() {
+    return this.client.$transaction.bind(this.client);
+  }
 }

@@ -41,9 +41,11 @@ enum SubscriptionStatus {
 }
 
 model WebhookEvent {
-  id        String   @id @default(uuid())
+  id        String      @id @default(uuid())
   payload   Json
   headers   Json?
+  eventType String?
+  source    String?
   status    EventStatus @default(RECEIVED)
   attempts  Int         @default(0)
   lastError String?
@@ -53,6 +55,8 @@ model WebhookEvent {
   subscriptionId String
   subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
+  deliveryAttempts DeliveryAttempt[]
+
   @@index([subscriptionId])
   @@index([status])
 }
@@ -61,5 +65,27 @@ enum EventStatus {
   RECEIVED
   PROCESSING
   DELIVERED
+  FAILED
+}
+
+model DeliveryAttempt {
+  id                  String          @id @default(uuid())
+  attemptNumber       Int
+  status              DeliveryStatus
+  httpStatus          Int?
+  responseBodySnippet String?
+  errorMessage        String?
+  nextRetryAt         DateTime?
+  createdAt           DateTime        @default(now())
+
+  eventId String
+  event   WebhookEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([nextRetryAt])
+}
+
+enum DeliveryStatus {
+  SUCCESS
   FAILED
 }
