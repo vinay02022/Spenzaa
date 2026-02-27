@@ -18,13 +18,14 @@ model User {
 }
 
 model WebhookSubscription {
-  id          String   @id @default(uuid())
+  id          String             @id @default(uuid())
   sourceUrl   String
   callbackUrl String
   secret      String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      SubscriptionStatus @default(ACTIVE)
+  eventTypes  String[]           @default([])
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -32,6 +33,11 @@ model WebhookSubscription {
   events WebhookEvent[]
 
   @@index([userId])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
 }
 
 model WebhookEvent {
