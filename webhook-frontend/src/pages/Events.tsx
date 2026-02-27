@@ -50,19 +50,22 @@ interface SseEventData {
 export default function Events() {
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
   const [filterSubId, setFilterSubId] = useState('');
   const [streamConnected, setStreamConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const fetchEvents = useCallback(async () => {
+    setError('');
     try {
       const query = filterSubId ? `?subscriptionId=${filterSubId}` : '';
       const data = await apiFetch<WebhookEvent[]>(`/events${query}`);
       setEvents(data);
     } catch (err) {
-      console.error('Failed to fetch events', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch events');
     } finally {
       setLoading(false);
     }
@@ -126,11 +129,12 @@ export default function Events() {
 
   async function openDetail(eventId: string) {
     setDetailLoading(true);
+    setDetailError('');
     try {
       const detail = await apiFetch<EventDetail>(`/events/${eventId}`);
       setSelectedEvent(detail);
     } catch (err) {
-      console.error('Failed to fetch event detail', err);
+      setDetailError(err instanceof Error ? err.message : 'Failed to fetch event details');
     } finally {
       setDetailLoading(false);
     }
@@ -169,9 +173,21 @@ export default function Events() {
         />
       </div>
 
+      {error && (
+        <p style={{ color: '#721c24', backgroundColor: '#f8d7da', padding: '0.75rem', borderRadius: 4, marginBottom: '1rem' }}>
+          {error}
+        </p>
+      )}
+
+      {detailError && !selectedEvent && (
+        <p style={{ color: '#721c24', backgroundColor: '#f8d7da', padding: '0.75rem', borderRadius: 4, marginBottom: '1rem' }}>
+          {detailError}
+        </p>
+      )}
+
       {loading ? (
-        <p>Loading...</p>
-      ) : events.length === 0 ? (
+        <p>Loading events...</p>
+      ) : events.length === 0 && !error ? (
         <p>No events received yet.</p>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>

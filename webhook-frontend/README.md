@@ -1,73 +1,75 @@
-# React + TypeScript + Vite
+# Webhook Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for the Webhook Subscription & Event Handling system. Provides UI for authentication, managing subscriptions, viewing events, and real-time event streaming.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Node.js** 18+
+- **npm** 9+
 
-## React Compiler
+## Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 1. Install dependencies
+npm install
 
-## Expanding the ESLint configuration
+# 2. Copy environment file and configure
+cp .env.example .env
+# Edit .env with your backend URL (see Environment Variables below)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 3. Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The app will be available at `http://localhost:5173`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable       | Required | Default                  | Description           |
+|----------------|----------|--------------------------|-----------------------|
+| `VITE_API_URL` | No       | `http://localhost:3000`  | Backend API base URL  |
+
+Example `.env`:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+## Scripts
+
+| Command            | Description                       |
+|--------------------|-----------------------------------|
+| `npm run dev`      | Start Vite dev server with HMR    |
+| `npm run build`    | Type-check and build for production |
+| `npm run preview`  | Preview production build locally  |
+| `npm run lint`     | Run ESLint                        |
+
+## Pages
+
+| Path              | Auth Required | Description                          |
+|-------------------|---------------|--------------------------------------|
+| `/login`          | No            | Login form                           |
+| `/signup`         | No            | Registration form                    |
+| `/subscriptions`  | Yes           | Create and manage webhook subscriptions |
+| `/events`         | Yes           | View events with real-time SSE updates  |
+
+## Features
+
+- **JWT auth** — login/signup with token stored in localStorage
+- **Protected routes** — redirect to login when unauthenticated
+- **Subscription management** — create, list, cancel webhooks
+- **Event viewer** — filterable table with detail modal showing delivery attempts
+- **Real-time updates** — SSE stream auto-updates event statuses live
+- **Connection indicator** — green/red dot shows SSE stream health
+- **Error handling** — visible error banners on all pages, loading states
+
+## Project Structure
+
+```
+src/
+  context/       AuthContext (JWT state management)
+  components/    ProtectedRoute
+  pages/         Login, Signup, Subscriptions, Events
+  lib/           API client (fetch wrapper with JWT header)
+  App.tsx        Router + layout + navigation
 ```

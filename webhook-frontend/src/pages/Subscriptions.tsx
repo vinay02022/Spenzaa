@@ -17,13 +17,15 @@ export default function Subscriptions() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState('');
 
   const fetchSubscriptions = useCallback(async () => {
+    setListError('');
     try {
       const data = await apiFetch<Subscription[]>('/webhooks');
       setSubscriptions(data);
     } catch (err) {
-      console.error('Failed to fetch subscriptions', err);
+      setListError(err instanceof Error ? err.message : 'Failed to load subscriptions');
     } finally {
       setListLoading(false);
     }
@@ -104,9 +106,14 @@ export default function Subscriptions() {
 
       <section>
         <h2>Your Subscriptions</h2>
+        {listError && (
+          <p style={{ color: '#721c24', backgroundColor: '#f8d7da', padding: '0.75rem', borderRadius: 4 }}>
+            {listError}
+          </p>
+        )}
         {listLoading ? (
-          <p>Loading...</p>
-        ) : subscriptions.length === 0 ? (
+          <p>Loading subscriptions...</p>
+        ) : subscriptions.length === 0 && !listError ? (
           <p>No subscriptions yet.</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>

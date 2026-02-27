@@ -5,20 +5,20 @@ import {
   Param,
   Body,
   Req,
-  Res,
   Query,
   Headers,
   UnauthorizedException,
   Sse,
 } from '@nestjs/common';
-import type { Response } from 'express';
-import { Observable, map, finalize } from 'rxjs';
+import { Observable, map } from 'rxjs';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { EventsService } from './events.service.js';
 import { EventBusService } from './event-bus.service.js';
 import { ReceiveEventDto } from './dto/receive-event.dto.js';
 import { Public } from '../auth/decorators/public.decorator.js';
+import { ParseUUIDPipe } from '../common/pipes/parse-uuid.pipe.js';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 
 interface AuthRequest {
@@ -41,9 +41,10 @@ export class EventsController {
   ) {}
 
   @Public()
+  @Throttle({ short: { ttl: 1_000, limit: 10 }, medium: { ttl: 60_000, limit: 60 } })
   @Post('webhooks/:subscriptionId/receive')
   receive(
-    @Param('subscriptionId') subscriptionId: string,
+    @Param('subscriptionId', ParseUUIDPipe) subscriptionId: string,
     @Body() dto: ReceiveEventDto,
     @Headers() headers: Record<string, string>,
   ) {
@@ -59,6 +60,7 @@ export class EventsController {
   }
 
   @Public()
+  @SkipThrottle()
   @Sse('events/stream')
   stream(@Query('token') token: string): Observable<MessageEvent> {
     if (!token) {
@@ -85,7 +87,7 @@ export class EventsController {
   }
 
   @Get('events/:id')
-  findOne(@Req() req: AuthRequest, @Param('id') id: string) {
+  findOne(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.eventsService.findOne(id, req.user.userId);
   }
 }

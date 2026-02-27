@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { WebhooksService } from './webhooks.service.js';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto.js';
+import { ParseUUIDPipe } from '../common/pipes/parse-uuid.pipe.js';
 
 interface AuthRequest {
   user: { userId: string; email: string };
@@ -29,12 +30,12 @@ export class WebhooksController {
   }
 
   @Post(':id/cancel')
-  cancelPost(@Req() req: AuthRequest, @Param('id') id: string) {
+  cancelPost(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.webhooksService.cancel(id, req.user.userId);
   }
 
   @Delete(':id')
-  cancel(@Req() req: AuthRequest, @Param('id') id: string) {
+  cancel(@Req() req: AuthRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.webhooksService.cancel(id, req.user.userId);
   }
 }
