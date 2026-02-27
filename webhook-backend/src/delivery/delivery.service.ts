@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EventBusService } from '../events/event-bus.service.js';
 
 const MAX_ATTEMPTS = 5;
 const BACKOFF_SCHEDULE_MS = [
@@ -13,7 +14,10 @@ const BACKOFF_SCHEDULE_MS = [
 export class DeliveryService {
   private readonly logger = new Logger(DeliveryService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventBus: EventBusService,
+  ) {}
 
   async deliverEvent(eventId: string) {
     const event = await this.prisma.webhookEvent.findUnique({
@@ -68,22 +72,37 @@ export class DeliveryService {
         });
 
         this.logger.log(`Event ${eventId} delivered on attempt ${attemptNumber}`);
+
+        this.eventBus.emit({
+          type: 'event.delivered',
+          userId: event.subscription.userId,
+          data: {
+            eventId,
+            subscriptionId: event.subscriptionId,
+            eventType: event.eventType,
+            source: event.source,
+            status: 'DELIVERED',
+            attempts: attemptNumber,
+            timestamp: new Date().toISOString(),
+          },
+        });
       } else {
-        await this.recordFailure(eventId, attemptNumber, response.status, snippet, `HTTP ${response.status}`);
+        await this.recordFailure(event, attemptNumber, response.status, snippet, `HTTP ${response.status}`);
       }
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      await this.recordFailure(eventId, attemptNumber, null, null, errMsg);
+      await this.recordFailure(event, attemptNumber, null, null, errMsg);
     }
   }
 
   private async recordFailure(
-    eventId: string,
+    event: { id: string; subscriptionId: string; eventType: string | null; source: string | null; subscription: { userId: string } },
     attemptNumber: number,
     httpStatus: number | null,
     responseSnippet: string | null,
     errorMessage: string,
   ) {
+    const eventId = event.id;
     const nextRetryAt =
       attemptNumber < MAX_ATTEMPTS
         ? new Date(Date.now() + (BACKOFF_SCHEDULE_MS[attemptNumber - 1] ?? BACKOFF_SCHEDULE_MS[BACKOFF_SCHEDULE_MS.length - 1]))
@@ -117,6 +136,21 @@ export class DeliveryService {
         `Event ${eventId} delivery permanently failed after ${MAX_ATTEMPTS} attempts`,
       );
     }
+
+    this.eventBus.emit({
+      type: attemptNumber >= MAX_ATTEMPTS ? 'event.failed' : 'event.processing',
+      userId: event.subscription.userId,
+      data: {
+        eventId,
+        subscriptionId: event.subscriptionId,
+        eventType: event.eventType,
+        source: event.source,
+        status: newStatus,
+        attempts: attemptNumber,
+        lastError: errorMessage,
+        timestamp: new Date().toISOString(),
+      },
+    });
   }
 
   async processRetries() {

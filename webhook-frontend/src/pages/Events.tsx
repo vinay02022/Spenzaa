@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '../lib/api';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface Subscription {
   sourceUrl: string;
@@ -34,12 +36,25 @@ interface EventDetail extends WebhookEvent {
   deliveryAttempts: DeliveryAttempt[];
 }
 
+interface SseEventData {
+  eventId: string;
+  subscriptionId: string;
+  eventType?: string | null;
+  source?: string | null;
+  status: string;
+  attempts: number;
+  lastError?: string | null;
+  timestamp: string;
+}
+
 export default function Events() {
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [filterSubId, setFilterSubId] = useState('');
+  const [streamConnected, setStreamConnected] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
@@ -55,6 +70,58 @@ export default function Events() {
 
   useEffect(() => {
     fetchEvents();
+  }, [fetchEvents]);
+
+  // SSE stream connection
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const url = `${API_URL}/events/stream?token=${encodeURIComponent(token)}`;
+    const es = new EventSource(url);
+    eventSourceRef.current = es;
+
+    es.onopen = () => {
+      setStreamConnected(true);
+    };
+
+    const handleSseEvent = (e: MessageEvent) => {
+      const data: SseEventData = JSON.parse(e.data);
+
+      setEvents((prev) => {
+        const idx = prev.findIndex((evt) => evt.id === data.eventId);
+        if (idx >= 0) {
+          // Update existing event in-place
+          const updated = [...prev];
+          updated[idx] = {
+            ...updated[idx],
+            status: data.status,
+            attempts: data.attempts,
+            lastError: data.lastError ?? updated[idx].lastError,
+          };
+          return updated;
+        }
+        // New event — we only have partial data from SSE, refetch for full list
+        fetchEvents();
+        return prev;
+      });
+    };
+
+    es.addEventListener('event.received', handleSseEvent);
+    es.addEventListener('event.delivered', handleSseEvent);
+    es.addEventListener('event.failed', handleSseEvent);
+    es.addEventListener('event.processing', handleSseEvent);
+
+    es.onerror = () => {
+      setStreamConnected(false);
+      // EventSource auto-reconnects by default
+    };
+
+    return () => {
+      es.close();
+      eventSourceRef.current = null;
+      setStreamConnected(false);
+    };
   }, [fetchEvents]);
 
   async function openDetail(eventId: string) {
@@ -90,6 +157,16 @@ export default function Events() {
           style={{ padding: '0.5rem', flex: 1 }}
         />
         <button onClick={fetchEvents} style={{ padding: '0.5rem 1rem' }}>Refresh</button>
+        <span
+          title={streamConnected ? 'Live stream connected' : 'Stream disconnected'}
+          style={{
+            display: 'inline-block',
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            backgroundColor: streamConnected ? '#28a745' : '#dc3545',
+          }}
+        />
       </div>
 
       {loading ? (

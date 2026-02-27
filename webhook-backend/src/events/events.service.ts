@@ -7,6 +7,7 @@ import {
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DeliveryService } from '../delivery/delivery.service.js';
+import { EventBusService } from './event-bus.service.js';
 import { ReceiveEventDto } from './dto/receive-event.dto.js';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class EventsService {
   constructor(
     private prisma: PrismaService,
     private deliveryService: DeliveryService,
+    private eventBus: EventBusService,
   ) {}
 
   async receive(subscriptionId: string, dto: ReceiveEventDto, headers: Record<string, string>) {
@@ -39,6 +41,20 @@ export class EventsService {
         source: dto.source ?? null,
         headers: headers as unknown as Prisma.InputJsonValue,
         status: 'RECEIVED',
+      },
+    });
+
+    this.eventBus.emit({
+      type: 'event.received',
+      userId: subscription.userId,
+      data: {
+        eventId: event.id,
+        subscriptionId,
+        eventType: event.eventType,
+        source: event.source,
+        status: event.status,
+        attempts: event.attempts,
+        timestamp: event.createdAt.toISOString(),
       },
     });
 
