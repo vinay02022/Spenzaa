@@ -28,6 +28,11 @@ export class WebhooksController {
     return this.webhooksService.findAllByUser(req.user.userId);
   }
 
+  @Post(':id/cancel')
+  cancelPost(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.webhooksService.cancel(id, req.user.userId);
+  }
+
   @Delete(':id')
   cancel(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.webhooksService.cancel(id, req.user.userId);

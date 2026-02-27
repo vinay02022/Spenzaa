@@ -53,6 +53,9 @@ export default function Subscriptions() {
   }
 
   async function handleCancel(id: string) {
+    if (!window.confirm('Are you sure you want to cancel this subscription? Pending deliveries will be stopped.')) {
+      return;
+    }
     try {
       await apiFetch(`/webhooks/${id}`, { method: 'DELETE' });
       await fetchSubscriptions();

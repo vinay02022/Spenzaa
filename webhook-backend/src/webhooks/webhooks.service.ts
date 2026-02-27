@@ -37,9 +37,24 @@ export class WebhooksService {
       throw new NotFoundException('Subscription not found');
     }
 
-    return this.prisma.webhookSubscription.update({
+    if (subscription.status === 'CANCELLED') {
+      return subscription;
+    }
+
+    // Cancel subscription and mark all pending events as FAILED
+    const updated = await this.prisma.webhookSubscription.update({
       where: { id },
       data: { status: 'CANCELLED' },
     });
+
+    await this.prisma.webhookEvent.updateMany({
+      where: {
+        subscriptionId: id,
+        status: { in: ['RECEIVED', 'PROCESSING'] },
+      },
+      data: { status: 'FAILED', lastError: 'Subscription cancelled' },
+    });
+
+    return updated;
   }
 }
