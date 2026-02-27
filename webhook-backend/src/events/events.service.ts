@@ -33,6 +33,16 @@ export class EventsService {
       throw new BadRequestException('Subscription is not active');
     }
 
+    if (
+      subscription.eventTypes.length > 0 &&
+      dto.eventType &&
+      !subscription.eventTypes.includes(dto.eventType)
+    ) {
+      throw new BadRequestException(
+        `Event type "${dto.eventType}" is not accepted by this subscription`,
+      );
+    }
+
     const event = await this.prisma.webhookEvent.create({
       data: {
         subscriptionId,
