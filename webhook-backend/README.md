@@ -44,6 +44,20 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Webhook Simulator
+
+Send sample webhook events to test the full pipeline (ingestion → delivery → retry → SSE):
+
+```bash
+# Send 5 events to a subscription
+node scripts/webhook-simulator.js --subscription-id <id>
+
+# Send 10 events with 500ms delay
+node scripts/webhook-simulator.js -s <id> -n 10 -d 500
+```
+
+See `plan/07-simulator.md` for full documentation.
+
 ## Run tests
 
 ```bash
