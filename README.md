@@ -1,6 +1,6 @@
 # Webhook Management Platform
 
-A full-stack webhook management system built as part of the Spenza code assessment. Users can subscribe to webhooks, receive and inspect events, track delivery attempts with automatic retries, and monitor everything in real time.
+A full-stack webhook management system built as part of the Spenza . Users can subscribe to webhooks, receive and inspect events, track delivery attempts with automatic retries, and monitor everything in real time.
 
 **Author:** Vinay Pandey ([vinay.work25@gmail.com](mailto:vinay.work25@gmail.com))
 
